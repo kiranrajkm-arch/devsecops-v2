@@ -1,16 +1,28 @@
-FROM python:3.13-slim
+FROM python:3.13-slim AS builder
+
+WORKDIR /build
+
+COPY requirements.txt .
+
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install \
+        --no-cache-dir \
+        --prefix=/install \
+        -r requirements.txt
+
+
+FROM python:3.13-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY --from=builder /install /usr/local
 
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
+RUN python -m pip uninstall --yes pip setuptools wheel \
     && groupadd --system appgroup \
-    && useradd --system --gid appgroup appuser
+    && useradd --system --gid appgroup --no-create-home appuser
 
 COPY --chown=appuser:appgroup app ./app
 

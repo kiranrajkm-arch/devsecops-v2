@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt
 
       - name: Run pytest
         run: python -m pytest -v
@@ -63,7 +63,7 @@ jobs:
       - name: Audit Python dependencies
         uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266 # v1.1.0
         with:
-          inputs: requirements.txt
+          inputs: requirements-dev.txt
 
   secret-scan:
     name: Gitleaks secret scan
