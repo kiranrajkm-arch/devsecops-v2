@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: DevSecOps Pipeline
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   test:
-    name: Run automated tests
+    name: Automated tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -36,11 +36,61 @@ jobs:
       - name: Run pytest
         run: python -m pytest -v
 
+  sast:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Scan source code
+        run: semgrep scan --config auto --error .
+
+  dependency-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Audit Python dependencies
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: requirements.txt
+
+  secret-scan:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out complete Git history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan Git history for secrets
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+
   docker-build:
     name: Build Docker image
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: test
+    needs:
+      - test
+      - sast
+      - dependency-scan
+      - secret-scan
 
     steps:
       - name: Check out repository
